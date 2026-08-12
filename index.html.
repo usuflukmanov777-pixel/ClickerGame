@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ядро — кликер</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg: #0a0c14;
+    --bg2: #0f1220;
+    --panel: #12162a;
+    --line: #232948;
+    --text: #d9dcf0;
+    --dim: #7378a0;
+    --core-a: #5eead4;
+    --core-b: #818cf8;
+    --amber: #fbbf6d;
+  }
+
+  *{ box-sizing: border-box; }
+  html, body{ height: 100%; }
+  body{
+    margin:0;
+    background: radial-gradient(1200px 800px at 50% -10%, #171c34 0%, var(--bg) 55%, #060710 100%);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    display:flex;
+    min-height:100vh;
+    align-items:center;
+    justify-content:center;
+    padding: 24px;
+    overflow-x:hidden;
+  }
+
+  .app{
+    width:100%;
+    max-width: 460px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:20px;
+  }
+
+  .eyebrow{
+    font-size: 12px;
+    letter-spacing: 0.25em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+  h1{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size: clamp(28px, 6vw, 40px);
+    margin: 0;
+    letter-spacing: -0.01em;
+    text-align:center;
+  }
+
+  .counter{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size: clamp(40px, 10vw, 56px);
+    color: var(--amber);
+    text-shadow: 0 0 30px rgba(251,191,109,0.25);
+    line-height:1;
+  }
+
+  .rate{
+    font-size:13px;
+    color: var(--dim);
+  }
+
+  .core-wrap{
+    position:relative;
+    width: 220px;
+    height: 220px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin: 12px 0;
+  }
+
+  .core{
+    width: 170px;
+    height: 170px;
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #eafffb 0%, var(--core-a) 30%, var(--core-b) 70%, #2f2a6b 100%);
+    box-shadow:
+      0 0 40px rgba(94,234,212,0.35),
+      0 0 90px rgba(129,140,248,0.25),
+      inset 0 0 30px rgba(255,255,255,0.25);
+    cursor: pointer;
+    border: none;
+    transition: transform 0.08s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .core:active{ transform: scale(0.94); }
+
+  .core-wrap::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+    border: 1px solid rgba(129,140,248,0.25);
+    animation: spin 18s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .core{
+    position: relative;
+    z-index: 1;
+  }
+
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .ripple{
+    position:absolute;
+    border-radius:50%;
+    border: 2px solid rgba(94,234,212,0.7);
+    pointer-events:none;
+    animation: ripple 0.6s ease-out forwards;
+  }
+
+  @keyframes ripple{
+    from{ width:170px; height:170px; opacity:0.8; }
+    to{ width:280px; height:280px; opacity:0; }
+  }
+
+  .float{
+    position:absolute;
+    font-size:14px;
+    color: var(--amber);
+    pointer-events:none;
+    animation: floatUp 0.9s ease-out forwards;
+    font-weight:500;
+  }
+
+  @keyframes floatUp{
+    from{ transform: translateY(0); opacity:1; }
+    to{ transform: translateY(-60px); opacity:0; }
+  }
+
+  .panel{
+    width:100%;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .upgrade{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor:pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .upgrade:hover:not(.locked){
+    border-color: var(--core-a);
+  }
+
+  .upgrade.locked{
+    opacity:0.45;
+    cursor:not-allowed;
+  }
+
+  .upgrade-info{ display:flex; flex-direction:column; gap:2px; }
+  .upgrade-name{ font-family:'Space Grotesk', sans-serif; font-weight:500; font-size:14px; color: var(--text); }
+  .upgrade-desc{ font-size:11px; color: var(--dim); }
+  .upgrade-cost{ font-size:13px; color: var(--core-a); white-space:nowrap; }
+  .upgrade-count{
+    font-size:11px;
+    color: var(--dim);
+    min-width: 22px;
+    text-align:center;
+  }
+
+  .reset{
+    margin-top: 4px;
+    background:none;
+    border:none;
+    color: var(--dim);
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    cursor:pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .reset:hover{ color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="eyebrow">Стабилизатор ядра</div>
+  <h1>Заряди ядро</h1>
+
+  <div class="counter" id="counter">0</div>
+  <div class="rate" id="rate">+0 энергии/сек</div>
+
+  <div class="core-wrap" id="coreWrap">
+    <button class="core" id="core" aria-label="Кликнуть по ядру"></button>
+  </div>
+
+  <div class="panel" id="upgrades"></div>
+
+  <button class="reset" id="reset">Сбросить прогресс</button>
+</div>
+
+<script>
+  const state = {
+    energy: 0,
+    perClick: 1,
+    perSecond: 0,
+  };
+
+  const upgradesConfig = [
+    { id: 'cursor',  name: 'Импульсный курсор', desc: '+1 к клику',        baseCost: 15,  effect: () => state.perClick += 1, count: 0, costMult: 1.15 },
+    { id: 'coil',    name: 'Катушка Теслы',     desc: '+1 энергии/сек',    baseCost: 40,  effect: () => state.perSecond += 1, count: 0, costMult: 1.15 },
+    { id: 'array',   name: 'Солнечный массив',  desc: '+5 энергии/сек',    baseCost: 250, effect: () => state.perSecond += 5, count: 0, costMult: 1.15 },
+    { id: 'reactor', name: 'Малый реактор',     desc: '+25 к клику',       baseCost: 900, effect: () => state.perClick += 25, count: 0, costMult: 1.15 },
+  ];
+
+  const counterEl = document.getElementById('counter');
+  const rateEl = document.getElementById('rate');
+  const coreEl = document.getElementById('core');
+  const coreWrap = document.getElementById('coreWrap');
+  const upgradesEl = document.getElementById('upgrades');
+
+  function cost(u){
+    return Math.floor(u.baseCost * Math.pow(u.costMult, u.count));
+  }
+
+  function fmt(n){
+    return Math.floor(n).toLocaleString('ru-RU');
+  }
+
+  function render(){
+    counterEl.textContent = fmt(state.energy);
+    rateEl.textContent = `+${fmt(state.perSecond)} энергии/сек · клик +${fmt(state.perClick)}`;
+
+    upgradesEl.innerHTML = '';
+    upgradesConfig.forEach(u => {
+      const c = cost(u);
+      const locked = state.energy < c;
+      const div = document.createElement('div');
+      div.className = 'upgrade' + (locked ? ' locked' : '');
+      div.innerHTML = `
+        <div class="upgrade-info">
+          <div class="upgrade-name">${u.name}</div>
+          <div class="upgrade-desc">${u.desc}</div>
+        </div>
+        <div class="upgrade-count">${u.count}</div>
+        <div class="upgrade-cost">${fmt(c)}</div>
+      `;
+      div.addEventListener('click', () => buy(u));
+      upgradesEl.appendChild(div);
+    });
+
+    save();
+  }
+
+  function buy(u){
+    const c = cost(u);
+    if(state.energy < c) return;
+    state.energy -= c;
+    u.count += 1;
+    u.effect();
+    render();
+  }
+
+  function spawnRipple(){
+    const r = document.createElement('div');
+    r.className = 'ripple';
+    coreWrap.appendChild(r);
+    setTimeout(() => r.remove(), 600);
+  }
+
+  function spawnFloat(x, y, amount){
+    const f = document.createElement('div');
+    f.className = 'float';
+    f.textContent = '+' + fmt(amount);
+    f.style.left = x + 'px';
+    f.style.top = y + 'px';
+    document.body.appendChild(f);
+    setTimeout(() => f.remove(), 900);
+  }
+
+  coreEl.addEventListener('click', (e) => {
+    state.energy += state.perClick;
+    spawnRipple();
+    spawnFloat(e.clientX - 10, e.clientY - 10, state.perClick);
+    render();
+  });
+
+  document.getElementById('reset').addEventListener('click', () => {
+    if(!confirm('Точно сбросить весь прогресс?')) return;
+    state.energy = 0;
+    state.perClick = 1;
+    state.perSecond = 0;
+    upgradesConfig.forEach(u => u.count = 0);
+    render();
+  });
+
+  function save(){
+    const data = {
+      energy: state.energy,
+      perClick: state.perClick,
+      perSecond: state.perSecond,
+      counts: upgradesConfig.map(u => u.count)
+    };
+    try{ window.__clickerSave = data; }catch(e){}
+  }
+
+  setInterval(() => {
+    if(state.perSecond > 0){
+      state.energy += state.perSecond / 10;
+      counterEl.textContent = fmt(state.energy);
+    }
+  }, 100);
+
+  render();
+</script>
+
+</body>
+</html>
